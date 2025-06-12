@@ -24,5 +24,11 @@ http://127.0.0.1:8000
 http://127.0.0.1:8000/docs
 ```
 
+### 추가 명령어
+``` bash
+# requirements.txt 업데이트
+pip freeze > requirements.txt
+```
+
 ### 추가 사항
 * 공동 작업을 위해 임의로 생성한 파일 구조입니다. 편하게 추가/수정/삭제 해주세요!
