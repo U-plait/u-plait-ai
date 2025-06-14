@@ -15,7 +15,7 @@ SessionLocal = sessionmaker(
     bind=engine
 )
 
-def init_db():
+def get_db():
     db = SessionLocal()
     try:
         yield db
