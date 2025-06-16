@@ -26,9 +26,18 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./app
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
+
+      - name: Copy .env file to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ".env"
+          target: "~/u-plait-app.env"
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -40,4 +49,4 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
             docker stop u-plait-app || true
             docker rm u-plait-app || true
-            docker run -d --name u-plait-app -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
+            docker run -d --name u-plait-app --env-file ~/u-plait-app.env -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
