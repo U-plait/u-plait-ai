@@ -1,19 +1,22 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.schemas import ChatTurnRequest, ChatResponse
+from app.schemas import ChatTurnRequest
 from app.jwt_auth import get_current_user_id
 from app.database import get_db
 from app.models import ChatLog
 from app.langchain_rag import build_multi_turn_chain
 from langchain_community.vectorstores.pgvector import PGVector
 import os
+import json
+import asyncio
 from langchain_openai import OpenAIEmbeddings
+from fastapi.responses import StreamingResponse
 
 
 router = APIRouter()
 
-@router.post("/chat", response_model=ChatResponse)
-def chat_turn(
+@router.post("/chat")
+async def chat_turn(
     request: ChatTurnRequest,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
@@ -25,10 +28,6 @@ def chat_turn(
             question = history[i].log
             answer = history[i + 1].log
             history_pairs.append((question, answer))
-
-    # ***** 이전 대화 출력 ***
-    print("\n📚 [ 이전 대화 출력]")
-    print(history_pairs)
 
     # *****로그 출력용*****
     embedding = OpenAIEmbeddings(model="text-embedding-3-small")
@@ -42,9 +41,6 @@ def chat_turn(
 
     # 2. 로그 출력
     print("\n📚 [Retrieved Documents]")
-    print(f"\n[DEBUG] Retrieved {len(docs)} documents.")
-    for i, doc in enumerate(docs):
-        print(f"Rank {i+1}: {doc.metadata.get('plan_id', 'N/A')} | {doc.page_content[:100]}", flush=True)
     docs_scores = vectorstore.similarity_search_with_score(request.query, k=5)
     print(f"\n[DEBUG] Retrieved {len(docs_scores)} documents.")
     for i, (doc, score) in enumerate(docs_scores):
@@ -53,16 +49,60 @@ def chat_turn(
 
     # LangChain chain 생성
     chain = build_multi_turn_chain()
-    answer = chain.run({
-        "question": request.query,
-        "chat_history": history_pairs
-    })
 
-    # 로그 저장: 질문 + 응답 2줄 저장
-    user_seq = len(history) + 1
-    bot_seq = user_seq + 1
-    db.add(ChatLog(user_id=user_id, log=request.query, sequence=user_seq, is_chatbot=False))
-    db.add(ChatLog(user_id=user_id, log=answer, sequence=bot_seq, is_chatbot=True))
-    db.commit()
+    # 응답 스트리밍 함수
+    async def gpt_stream():
+         answer_buffer = ""  #GPT 답변
+         plan_json_buffer = ""   # plan_ids
+         is_plan_mode = False  # [END_OF_MESSAGE] 이후 plan_ids 존재 여부
+    
+         # LangChain chain을 비동기로 실행하면서 토큰 단위로 응답 수신
+         async for chunk in chain.astream({
+              "question": request.query,
+              "chat_history": history_pairs
+         }):
 
-    return ChatResponse(answer=answer)
+            # chunk가 dict이면 'answer' 필드에서 가져오고, 아니면 문자열로 처리
+            token = chunk.get("answer", "") if isinstance(chunk, dict) else str(chunk)
+
+            if "[END_OF_MESSAGE]" in token:
+                is_plan_mode = True
+                parts = token.split("[END_OF_MESSAGE]")
+
+                # 메시지 부분만 스트리밍
+                answer_buffer += parts[0]
+                for char in parts[0]:
+                    yield f"data: {char}\n\n"
+                    await asyncio.sleep(0.01)
+
+                yield f"data: [END_OF_MESSAGE]\n\n"
+
+                # JSON이 같이 붙어온 경우 저장
+                if len(parts) > 1:
+                    plan_json_buffer += parts[1]
+                continue
+
+            # 이 시점의 token은 [END_OF_MESSAGE] 없는 일반 텍스트
+            if not is_plan_mode:
+                answer_buffer += token
+                for char in token:
+                    yield f"data: {char}\n\n"
+                    await asyncio.sleep(0.01)
+            else:
+                plan_json_buffer += token
+
+        # plan_ids 파싱
+         try:
+            plan_data = json.loads(plan_json_buffer.strip())
+         except Exception:
+            plan_data = {"plan_ids": []}
+
+        # plan_ids JSON을 스트리밍 전송 (추후에 이거 기반으로 db에서 정보 가져오는 걸로 고쳐야함)
+         yield f"data: {json.dumps(plan_data)}\n\n"
+
+        # 대화 로그 DB에 저장 (질문 + 답변)
+         seq = len(history)+1
+         db.add(ChatLog(user_id=user_id, log=request.query, sequence=seq, is_chatbot=False))
+         db.add(ChatLog(user_id=user_id, log=answer_buffer, sequence=seq+1, is_chatbot=True))
+         db.commit()
+    return StreamingResponse(gpt_stream(), media_type="text/event-stream")
