@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.database import get_db
-from app.models import PlanVector
-from app.embedding import get_embedding
+from langchain_core.documents import Document
+from app.vector_store import get_vector_store
 from app.chat_router import router as chat_router
 
 app = FastAPI()
@@ -19,23 +20,38 @@ app.add_middleware(
 app.include_router(chat_router)
 
 @app.post("/vector")
-async def save_plan_vector(plan_id: int, description: str, db: Session = Depends(get_db)):
+async def save_plan_vector(
+    plan_id: int, 
+    description: str, 
+    db: Session = Depends(get_db)
+):
     try:
-        embedding = get_embedding(description)
-
-        new_vector_plan = PlanVector(
-            plan_id=plan_id,
-            description=description,
-            embedding=embedding
+        # 벡터 저장소 초기화 (컬렉션 자동 생성)
+        vector_store = get_vector_store()
+        
+        # 문서 생성
+        doc = Document(
+            page_content=description,
+            metadata={"plan_id": plan_id}
         )
+        
+        # 임베딩 저장
+        vector_store.add_documents([doc])
 
-        db.add(new_vector_plan)
+        # custom_id 재설정
+        db.execute(text("""
+            UPDATE langchain_pg_embedding
+            SET custom_id = 'plan-' || :plan_id
+            WHERE cmetadata->>'plan_id' = :plan_id;
+        """), {"plan_id": str(plan_id)})
+
         db.commit()
-        db.refresh(new_vector_plan)
-    
-        return {"status": "success", "vector_id": new_vector_plan.id}
+        
+        return {"status": "success"}
     
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
+        raise HTTPException(
+            status_code=500,
+            detail=f"임베딩 저장 실패: {str(e)}"
+        )

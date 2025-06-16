@@ -26,6 +26,10 @@ def chat_turn(
             answer = history[i + 1].log
             history_pairs.append((question, answer))
 
+    # ***** 이전 대화 출력 ***
+    print("\n📚 [ 이전 대화 출력]")
+    print(history_pairs)
+
     # *****로그 출력용*****
     embedding = OpenAIEmbeddings(model="text-embedding-3-small")
     vectorstore = PGVector(
@@ -48,7 +52,7 @@ def chat_turn(
     # *****로그 출력용*****
 
     # LangChain chain 생성
-    chain = build_multi_turn_chain(history_pairs)
+    chain = build_multi_turn_chain()
     answer = chain.run({
         "question": request.query,
         "chat_history": history_pairs
