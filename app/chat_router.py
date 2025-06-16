@@ -11,6 +11,7 @@ import json
 import asyncio
 from langchain_openai import OpenAIEmbeddings
 from fastapi.responses import StreamingResponse
+from app.tag_service import update_user_tags
 
 
 router = APIRouter()
@@ -22,7 +23,7 @@ async def chat_turn(
     user_id: int = Depends(get_current_user_id)
 ):
     # 이전 대화 불러오기
-    history = db.query(ChatLog).filter(ChatLog.user_id == user_id).order_by(ChatLog.sequence).all()
+    history = db.query(ChatLog).filter(ChatLog.user_id == user_id).order_by(ChatLog.created_at).all()
     history_pairs = []
     for i in range(0, len(history) -1, 2):
             question = history[i].log
@@ -80,6 +81,7 @@ async def chat_turn(
                 # JSON이 같이 붙어온 경우 저장
                 if len(parts) > 1:
                     plan_json_buffer += parts[1]
+                    answer_buffer += "[END_OF_MESSAGE]" + parts[1]  # 🔥 여기를 추가
                 continue
 
             # 이 시점의 token은 [END_OF_MESSAGE] 없는 일반 텍스트
@@ -100,9 +102,13 @@ async def chat_turn(
         # plan_ids JSON을 스트리밍 전송 (추후에 이거 기반으로 db에서 정보 가져오는 걸로 고쳐야함)
          yield f"data: {json.dumps(plan_data)}\n\n"
 
+        # 🔥 유저 태그 업데이트 호출 추가
+         if plan_data.get("plan_ids"):
+            update_user_tags(user_id=user_id, plan_ids=plan_data["plan_ids"], db=db)
+
         # 대화 로그 DB에 저장 (질문 + 답변)
          seq = len(history)+1
-         db.add(ChatLog(user_id=user_id, log=request.query, sequence=seq, is_chatbot=False))
-         db.add(ChatLog(user_id=user_id, log=answer_buffer, sequence=seq+1, is_chatbot=True))
+         db.add(ChatLog(user_id=user_id, log=request.query, is_chatbot=False))
+         db.add(ChatLog(user_id=user_id, log=answer_buffer, is_chatbot=True))
          db.commit()
     return StreamingResponse(gpt_stream(), media_type="text/event-stream")
