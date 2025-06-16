@@ -26,14 +26,23 @@ jobs:
       - name: Create env file from secret
         run: |
           echo "${{ secrets.ENV_FILE }}" > myenvfile.env
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./app
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
-      
+
+      - name: Remove old env directory/file on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            rm -rf ~/myenvfile.env
+
       - name: Copy env file to EC2
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -42,7 +51,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "myenvfile.env"
           target: "~/myenvfile.env"
-      
+
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
