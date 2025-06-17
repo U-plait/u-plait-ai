@@ -3,12 +3,6 @@ fastapi==0.115.12
 h11==0.16.0
 httpx==0.28.1
 langchain==0.3.25
-langchain-core==0.3.65
-langchain-community==0.3.25
-langchain-openai==0.3.23
-langchain-text-splitters==0.3.8
-langsmith==0.3.45
-
 numpy==1.26.4
 openai==1.84.0
 packaging==24.2
@@ -18,10 +12,16 @@ requests==2.32.3
 starlette==0.46.2
 typing_extensions==4.14.0
 uvicorn==0.34.3
-
-pgvector==0.4.1
 psycopg2-binary==2.9.10
+langchain-community==0.3.25
+langchain-openai==0.3.23
+pgvector==0.4.1
 PyJWT==2.10.1
-python-jose==3.5.0
-sqlalchemy==2.0.41
+
+# sentence-transformers 라이브러리
 sentence-transformers==2.6.1
+
+# transformers 및 의존성 (HuggingFace 기반)
+transformers==4.39.3
+scikit-learn==1.4.2
+scipy==1.13.1
