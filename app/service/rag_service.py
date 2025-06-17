@@ -1,5 +1,5 @@
+# rag_service.py
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import ConversationalRetrievalChain
@@ -7,9 +7,7 @@ from app.core.vector_store import get_vector_store
 
 load_dotenv()
 
-embedding = OpenAIEmbeddings(model="text-embedding-3-small")
 vectorstore = get_vector_store()
-
 llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
 
 multi_turn_template = """
@@ -45,7 +43,6 @@ multi_turn_prompt = PromptTemplate(
     input_variables=["chat_history", "context", "question"],
     template=multi_turn_template
 )
-
 
 def build_multi_turn_chain():
     return ConversationalRetrievalChain.from_llm(
