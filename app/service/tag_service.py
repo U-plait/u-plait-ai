@@ -1,5 +1,6 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 def update_user_tags(user_id: int, plan_ids: list[int], db: Session):
     tag_query = text("""
@@ -9,6 +10,8 @@ def update_user_tags(user_id: int, plan_ids: list[int], db: Session):
     """)
     result = db.execute(tag_query, {"plan_ids": plan_ids})
     tag_ids = [row[0] for row in result.fetchall()]
+
+    now = datetime.utcnow()
 
     for tag_id in tag_ids:
         check_query = text("""
@@ -20,13 +23,14 @@ def update_user_tags(user_id: int, plan_ids: list[int], db: Session):
 
         if existing:
             db.execute(text("""
-                UPDATE user_tag SET tag_count = tag_count + 1, updated_at = NOW()
+                UPDATE user_tag 
+                SET tag_count = tag_count + 1, updated_at = :now
                 WHERE user_id = :user_id AND tag_id = :tag_id
-            """), {"user_id": user_id, "tag_id": tag_id})
+            """), {"user_id": user_id, "tag_id": tag_id, "now": now})
         else:
             db.execute(text("""
                 INSERT INTO user_tag (user_id, tag_id, tag_count, created_at, updated_at)
-                VALUES (:user_id, :tag_id, 1, NOW(), NOW())
-            """), {"user_id": user_id, "tag_id": tag_id})
+                VALUES (:user_id, :tag_id, 1, :now, :now)
+            """), {"user_id": user_id, "tag_id": tag_id, "now": now})
 
     db.commit()

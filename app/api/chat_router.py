@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.schemas import ChatTurnRequest
-from app.jwt_auth import get_current_user_id
-from app.database import get_db
-from app.models import ChatLog
-from app.langchain_rag import build_multi_turn_chain
+from app.core.jwt_auth import get_current_user_id
+from app.core.database import get_db
+from app.models.models import ChatLog
+from app.service.rag_service import build_multi_turn_chain
 from langchain_community.vectorstores.pgvector import PGVector
 import os
 import json
 import asyncio
 from langchain_openai import OpenAIEmbeddings
 from fastapi.responses import StreamingResponse
-from app.tag_service import update_user_tags
+from app.service.tag_service import update_user_tags
 
 
 router = APIRouter()
