@@ -25,7 +25,6 @@ jobs:
 
       - name: Create env file from secret
         run: |
-          touch .env
           echo "${{ secrets.ENV_FILE }}" >> .env
 
       - name: Build and push Docker image
