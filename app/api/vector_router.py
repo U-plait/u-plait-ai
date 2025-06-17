@@ -7,7 +7,7 @@ from app.core.vector_store import get_vector_store
 
 router = APIRouter(prefix="/vector", tags=["Vector"])
 
-@router.post("/")
+@router.post("")
 async def save_plan_vector(
     plan_id: int, 
     description: str, 

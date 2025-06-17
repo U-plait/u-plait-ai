@@ -12,6 +12,8 @@ import asyncio
 from langchain_openai import OpenAIEmbeddings
 from fastapi.responses import StreamingResponse
 from app.service.tag_service import update_user_tags
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from app.core.vector_store import get_vector_store
 
 
 router = APIRouter()
@@ -31,12 +33,14 @@ async def chat_turn(
             history_pairs.append((question, answer))
 
     # *****로그 출력용*****
-    embedding = OpenAIEmbeddings(model="text-embedding-3-small")
-    vectorstore = PGVector(
-    connection_string=os.getenv("DATABASE_URL"),
-    embedding_function=embedding,
-    collection_name="plan_vector",
-    )   
+    embedding = HuggingFaceEmbeddings(
+    model_name="jhgan/ko-sroberta-multitask",  # 또는 다른 HuggingFace 모델
+    model_kwargs={"device": "cpu"},            # GPU 사용 시 "cuda"
+    encode_kwargs={"normalize_embeddings": True}
+)
+
+    vectorstore = get_vector_store()
+
     # 1. 유사 문서 직접 검색 (출력용)
     docs = vectorstore.similarity_search(request.query, k=5)
 
