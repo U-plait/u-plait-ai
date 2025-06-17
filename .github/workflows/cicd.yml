@@ -25,23 +25,14 @@ jobs:
 
       - name: Create env file from secret
         run: |
-          echo "${{ secrets.ENV_FILE }}" > myenvfile.env
+          echo "${{ secrets.ENV_FILE }}" > .env
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./app
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
-
-      - name: Remove old env directory/file on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            rm -rf ~/myenvfile.env
+          tags: ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
 
       - name: Copy env file to EC2
         uses: appleboy/scp-action@v0.1.4
@@ -49,8 +40,8 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "myenvfile.env"
-          target: "~/myenvfile.env"
+          source: ".env"
+          target: "~/.env"
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -59,7 +50,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
-            docker stop u-plait-app || true
-            docker rm u-plait-app || true
-            docker run -d --name u-plait-app --env-file ~/myenvfile.env -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/u-plait-app:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
+            docker stop uplait-ai || true
+            docker rm uplait-ai || true
+            docker run -d --name uplait-ai --env-file ~/.env -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
