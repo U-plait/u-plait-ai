@@ -3,7 +3,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import ConversationalRetrievalChain
-from app.vector_store import get_vector_store
+from app.core.vector_store import get_vector_store
 
 load_dotenv()
 
