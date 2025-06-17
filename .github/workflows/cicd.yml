@@ -49,3 +49,4 @@ jobs:
             docker stop uplait-ai || true
             docker rm uplait-ai || true
             docker run -d --name uplait-ai --env-file ~/.env -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
+            docker image prune -a
