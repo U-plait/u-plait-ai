@@ -3,8 +3,10 @@
 # 가상환경 생성
 python -m venv myenv
 
-# 가상환경 활성화
+# 가상환경 활성화(윈도우)
 source myenv/Scripts/activate
+# 가상환경 활성화(맥)
+source myenv/bin/activate
 
 # 패키지 설치
 pip install -r requirements.txt
@@ -20,6 +22,12 @@ http://127.0.0.1:8000
 
 # Swagger 주소 (자동 생성)
 http://127.0.0.1:8000/docs
+```
+
+### 추가 명령어
+``` bash
+# requirements.txt 업데이트
+pip freeze > requirements.txt
 ```
 
 ### 추가 사항
