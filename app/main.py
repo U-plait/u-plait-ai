@@ -10,7 +10,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # 또는 ["*"] 등으로 CORS 범위 설정
+    allow_origins=["http://localhost:3000", "https://uplait.site"],  # 또는 ["*"] 등으로 CORS 범위 설정
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
