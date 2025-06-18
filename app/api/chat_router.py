@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from app.service.tag_service import update_user_tags
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from app.core.vector_store import get_vector_store
-
+from sqlalchemy import text
 
 router = APIRouter()
 
@@ -24,6 +24,36 @@ async def chat_turn(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
+    
+    # 1. 사용자 정보 + 상위 2개 태그 조회 (Raw SQL)
+    sql = text("""
+        SELECT 
+            u.name, u.age, u.gender,
+            COALESCE(string_agg(t.name, ', ' ORDER BY ut.tag_count DESC), '') AS top_tags
+        FROM users u
+        LEFT JOIN user_tag ut ON u.id = ut.user_id
+        LEFT JOIN tag t ON ut.tag_id = t.id
+        WHERE u.id = :user_id
+        GROUP BY u.id, u.name, u.age, u.gender
+    """)
+
+    result = db.execute(sql, {"user_id": user_id}).fetchone()
+
+    if result:
+        user_name, user_age, user_gender, top_tags = result
+
+        # 사용자 정보 문자열 생성
+        if top_tags:
+            user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}, 주요 관심 태그: {top_tags}"
+        else:
+            user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}"
+        
+        # 디버깅용 로그 출력
+        print(f"[DEBUG] 사용자 정보 조회 성공: {user_info}")
+    else:
+        user_info = "사용자 정보 없음"
+        print("[DEBUG] 사용자 정보 조회 실패: 해당 ID에 대한 정보 없음")
+
     # 이전 대화 불러오기
     history = db.query(ChatLog).filter(ChatLog.user_id == user_id).order_by(ChatLog.created_at).all()
     history_pairs = []
@@ -53,7 +83,8 @@ async def chat_turn(
          # LangChain chain을 비동기로 실행하면서 토큰 단위로 응답 수신
          async for chunk in chain.astream({
               "question": request.query,
-              "chat_history": history_pairs
+              "chat_history": history_pairs,
+              "user_info": user_info
          }):
 
             # chunk가 dict이면 'answer' 필드에서 가져오고, 아니면 문자열로 처리
