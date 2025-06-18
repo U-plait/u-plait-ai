@@ -32,7 +32,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
+            ${{ secrets.DOCKER_USERNAME }}/uplait-ai:${{ github.sha }}
 
       - name: Create .env file on EC2 from secret
         uses: appleboy/ssh-action@v1.0.3
@@ -50,8 +52,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
             docker stop uplait-ai || true
             docker rm uplait-ai || true
-            docker run -d --name uplait-ai --env-file ~/.env -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
-            docker image prune -a
+            docker rmi ${{ secrets.DOCKER_USERNAME }}/uplait-ai:${{ github.sha }} || true
+            docker pull ${{ secrets.DOCKER_USERNAME }}/uplait-ai:${{ github.sha }}
+            docker run -d --name uplait-ai --env-file ~/.env -p 8000:8000 ${{ secrets.DOCKER_USERNAME }}/uplait-ai:${{ github.sha }}
+            docker image prune -a -f
