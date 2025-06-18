@@ -9,7 +9,7 @@ source myenv/Scripts/activate
 source myenv/bin/activate
 
 # 패키지 설치
-pip install -r requirements.txt
+pip install -r app/requirements.txt
 
 # FastAPI 실행
 uvicorn app.main:app --reload

@@ -32,25 +32,14 @@ async def chat_turn(
             answer = history[i + 1].log
             history_pairs.append((question, answer))
 
-    # *****로그 출력용*****
-    embedding = HuggingFaceEmbeddings(
-    model_name="jhgan/ko-sroberta-multitask",  # 또는 다른 HuggingFace 모델
-    model_kwargs={"device": "cpu"},            # GPU 사용 시 "cuda"
-    encode_kwargs={"normalize_embeddings": True}
-)
-
     vectorstore = get_vector_store()
 
-    # 1. 유사 문서 직접 검색 (출력용)
-    docs = vectorstore.similarity_search(request.query, k=5)
-
-    # 2. 로그 출력
+    # 2. 유사도 검색 결과 로그 출력
     print("\n📚 [Retrieved Documents]")
     docs_scores = vectorstore.similarity_search_with_score(request.query, k=5)
     print(f"\n[DEBUG] Retrieved {len(docs_scores)} documents.")
     for i, (doc, score) in enumerate(docs_scores):
         print(f"Rank {i+1}: Score={score:.3f} | {doc.page_content[:100]}")
-    # *****로그 출력용*****
 
     # LangChain chain 생성
     chain = build_multi_turn_chain()
@@ -111,7 +100,6 @@ async def chat_turn(
             update_user_tags(user_id=user_id, plan_ids=plan_data["plan_ids"], db=db)
 
         # 대화 로그 DB에 저장 (질문 + 답변)
-         seq = len(history)+1
          db.add(ChatLog(user_id=user_id, log=request.query, is_chatbot=False))
          db.add(ChatLog(user_id=user_id, log=answer_buffer, is_chatbot=True))
          db.commit()
