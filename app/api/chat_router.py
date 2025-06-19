@@ -106,6 +106,8 @@ async def chat_turn(
 
             # chunk가 dict이면 'answer' 필드에서 가져오고, 아니면 문자열로 처리
             token = chunk.get("answer", "") if isinstance(chunk, dict) else str(chunk)
+            print("여기 토큰이야")
+            print(token)
 
             if "[END_OF_MESSAGE]" in token:
                 is_plan_mode = True
@@ -134,16 +136,23 @@ async def chat_turn(
             else:
                 plan_json_buffer += token
 
+        
+        
         # plan_ids 파싱
          try:
             plan_data = json.loads(plan_json_buffer.strip())
+            
          except Exception:
             plan_data = {"plan_ids": []}
+
+         print("여기는 플랜데이터")
+         print(plan_data)
 
         # plan_ids JSON을 스트리밍 전송 (추후에 이거 기반으로 db에서 정보 가져오는 걸로 고쳐야함)
          yield f"data: {json.dumps(plan_data)}\n\n"
          plan_ids = plan_data.get("plan_ids", [])
          plans_info = []
+         print(plan_ids)
          if plan_ids:
             sql = text("""
                 SELECT id, plan_name, plan_price, description, dtype
