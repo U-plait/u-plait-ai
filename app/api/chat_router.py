@@ -1,3 +1,4 @@
+# chat_router.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.schemas import ChatTurnRequest
@@ -13,8 +14,8 @@ from langchain_openai import OpenAIEmbeddings
 from fastapi.responses import StreamingResponse
 from app.service.tag_service import update_user_tags
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from app.core.vector_store import get_vector_store
 from sqlalchemy import text
+from app.dependencies.vector import get_vectorstore
 
 router = APIRouter()
 
@@ -41,11 +42,10 @@ async def chat_turn(
     result = db.execute(sql, {"user_id": user_id}).fetchone()
 
     if result:
-        user_name, user_age, user_gender, top_tags = result
-
-        # 사용자 정보 문자열 생성
+        user_name, user_age, user_gender, top_tags_str = result
+        top_tags = top_tags_str.split(', ')[:2]  # 🔥 상위 2개만 추출
         if top_tags:
-            user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}, 주요 관심 태그: {top_tags}"
+            user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}, 주요 관심 태그: {', '.join(top_tags)}"
         else:
             user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}"
 
@@ -55,27 +55,42 @@ async def chat_turn(
         user_info = "사용자 정보 없음"
         print("[DEBUG] 사용자 정보 조회 실패: 해당 ID에 대한 정보 없음")
 
-    # 이전 대화 불러오기
-    history = db.query(ChatLog).filter(ChatLog.user_id == user_id).order_by(ChatLog.created_at).all()
+    # 2. 이전 대화 불러오기 (ChatLog.id 기준 내림차순 6개 → Q&A 페어 3개)
+    logs = db.query(ChatLog)\
+        .filter(ChatLog.user_id == user_id)\
+        .order_by(ChatLog.id.desc())\
+        .limit(6).all()
+
+    logs.reverse()  # 오래된 순서로 정렬
+
+    print("[DEBUG] 🔄 Raw ChatLog 불러온 결과 (log, is_chatbot):")
+    for log in logs:
+        print(f"- {log.log[:30]}... | is_chatbot={log.is_chatbot}")
+
     history_pairs = []
-    for i in range(0, len(history) - 1, 2):
-        question = history[i].log
-        answer = history[i + 1].log
-        history_pairs.append((question, answer))
+    i = 0
+    while i < len(logs) - 1:
+        if not logs[i].is_chatbot and logs[i+1].is_chatbot:
+            question = logs[i].log
+            answer = logs[i+1].log
+            history_pairs.append((question, answer))
+            i += 2
+        else:
+            i += 1
 
-    vectorstore = get_vector_store()
-
-    # 유사도 검색 결과 로그 출력
+    vectorstore = get_vectorstore()
+  
+    # 3. 유사도 검색 결과 로그 출력
     print("\n📚 [Retrieved Documents]")
     docs_scores = vectorstore.similarity_search_with_score(request.query, k=5)
     print(f"\n[DEBUG] Retrieved {len(docs_scores)} documents.")
     for i, (doc, score) in enumerate(docs_scores):
         print(f"Rank {i+1}: Score={score:.3f} | {doc.page_content[:100]}")
 
-    # LangChain chain 생성
+    # 4. LangChain chain 생성
     chain = build_multi_turn_chain()
 
-    # 응답 스트리밍 함수
+    # 5. 응답 스트리밍 함수
     async def gpt_stream():
 
          answer_buffer = ""  #GPT 답변
@@ -127,7 +142,6 @@ async def chat_turn(
 
         # plan_ids JSON을 스트리밍 전송 (추후에 이거 기반으로 db에서 정보 가져오는 걸로 고쳐야함)
          yield f"data: {json.dumps(plan_data)}\n\n"
-
          plan_ids = plan_data.get("plan_ids", [])
          plans_info = []
          if plan_ids:

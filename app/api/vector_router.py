@@ -1,9 +1,10 @@
+# vector_router.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
 from langchain_core.documents import Document
-from app.core.vector_store import get_vector_store
+from app.dependencies.vector import get_vectorstore
 
 router = APIRouter(prefix="/vector", tags=["Vector"])
 
@@ -14,7 +15,7 @@ async def save_plan_vector(
     db: Session = Depends(get_db)
 ):
     try:
-        vector_store = get_vector_store()
+        vector_store = get_vectorstore()
         
         doc = Document(
             page_content=description,
