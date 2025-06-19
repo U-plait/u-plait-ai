@@ -1,3 +1,4 @@
+# jwt_auth.py
 import os
 from fastapi import HTTPException, Cookie
 import jwt
