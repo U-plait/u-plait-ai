@@ -140,6 +140,7 @@ async def chat_turn(
         
         # plan_ids 파싱
          try:
+            cleaned_json = plan_json_buffer.strip().removeprefix("```json").removesuffix("```").strip()
             plan_data = json.loads(plan_json_buffer.strip())
             
          except Exception:
