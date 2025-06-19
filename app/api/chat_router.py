@@ -19,14 +19,15 @@ from app.dependencies.vector import get_vectorstore
 
 router = APIRouter()
 
+
 @router.post("/chat")
 async def chat_turn(
     request: ChatTurnRequest,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    
-    # 1. 사용자 정보 + 상위 2개 태그 조회 (Raw SQL)
+
+    # 사용자 정보 + 상위 2개 태그 조회 (Raw SQL)
     sql = text("""
         SELECT 
             u.name, u.age, u.gender,
@@ -47,6 +48,8 @@ async def chat_turn(
             user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}, 주요 관심 태그: {', '.join(top_tags)}"
         else:
             user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}"
+
+        # 디버깅용 로그 출력
         print(f"[DEBUG] 사용자 정보 조회 성공: {user_info}")
     else:
         user_info = "사용자 정보 없음"
@@ -76,7 +79,7 @@ async def chat_turn(
             i += 1
 
     vectorstore = get_vectorstore()
-
+  
     # 3. 유사도 검색 결과 로그 출력
     print("\n📚 [Retrieved Documents]")
     docs_scores = vectorstore.similarity_search_with_score(request.query, k=5)
@@ -89,6 +92,7 @@ async def chat_turn(
 
     # 5. 응답 스트리밍 함수
     async def gpt_stream():
+
          answer_buffer = ""  #GPT 답변
          plan_json_buffer = ""   # plan_ids
          is_plan_mode = False  # [END_OF_MESSAGE] 이후 plan_ids 존재 여부
@@ -118,7 +122,7 @@ async def chat_turn(
                 # JSON이 같이 붙어온 경우 저장
                 if len(parts) > 1:
                     plan_json_buffer += parts[1]
-                    answer_buffer += "[END_OF_MESSAGE]" + parts[1]  # 🔥 여기를 추가
+                    answer_buffer += "[END_OF_MESSAGE]" + parts[1] 
                 continue
 
             # 이 시점의 token은 [END_OF_MESSAGE] 없는 일반 텍스트
@@ -138,6 +142,19 @@ async def chat_turn(
 
         # plan_ids JSON을 스트리밍 전송 (추후에 이거 기반으로 db에서 정보 가져오는 걸로 고쳐야함)
          yield f"data: {json.dumps(plan_data)}\n\n"
+         plan_ids = plan_data.get("plan_ids", [])
+         plans_info = []
+         if plan_ids:
+            sql = text("""
+                SELECT id, plan_name, plan_price, description, dtype
+                FROM plan
+                WHERE id = ANY(:plan_ids)
+            """)
+            result = db.execute(sql, {"plan_ids": plan_ids})
+            plans_info = [dict(row) for row in result.mappings().all()]
+
+            yield f"data: {json.dumps({'plans': plans_info})}\n\n"
+
 
         # 유저 태그 업데이트 호출 추가
          if plan_data.get("plan_ids"):
