@@ -32,7 +32,6 @@ multi_turn_template = """
 
 
 
-
 [이전 대화]
 {chat_history}
 
