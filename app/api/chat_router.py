@@ -126,7 +126,21 @@ async def chat_turn(
         # plan_ids JSON을 스트리밍 전송 (추후에 이거 기반으로 db에서 정보 가져오는 걸로 고쳐야함)
          yield f"data: {json.dumps(plan_data)}\n\n"
 
-        # 🔥 유저 태그 업데이트 호출 추가
+         plan_ids = plan_data.get("plan_ids", [])
+         plans_info = []
+         if plan_ids:
+            sql = text("""
+                SELECT id, plan_name, plan_price, description, dtype
+                FROM plan
+                WHERE id = ANY(:plan_ids)
+            """)
+            result = db.execute(sql, {"plan_ids": plan_ids})
+            plans_info = [dict(row) for row in result.mappings().all()]
+
+            yield f"data: {json.dumps({'plans': plans_info})}\n\n"
+
+
+        # 유저 태그 업데이트 호출 추가
          if plan_data.get("plan_ids"):
             update_user_tags(user_id=user_id, plan_ids=plan_data["plan_ids"], db=db)
 
