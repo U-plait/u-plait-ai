@@ -18,14 +18,15 @@ from sqlalchemy import text
 
 router = APIRouter()
 
+
 @router.post("/chat")
 async def chat_turn(
     request: ChatTurnRequest,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
-    
-    # 1. 사용자 정보 + 상위 2개 태그 조회 (Raw SQL)
+
+    # 사용자 정보 + 상위 2개 태그 조회 (Raw SQL)
     sql = text("""
         SELECT 
             u.name, u.age, u.gender,
@@ -47,7 +48,7 @@ async def chat_turn(
             user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}, 주요 관심 태그: {top_tags}"
         else:
             user_info = f"사용자 이름: {user_name}, 나이: {user_age}, 성별: {user_gender}"
-        
+
         # 디버깅용 로그 출력
         print(f"[DEBUG] 사용자 정보 조회 성공: {user_info}")
     else:
@@ -57,14 +58,14 @@ async def chat_turn(
     # 이전 대화 불러오기
     history = db.query(ChatLog).filter(ChatLog.user_id == user_id).order_by(ChatLog.created_at).all()
     history_pairs = []
-    for i in range(0, len(history) -1, 2):
-            question = history[i].log
-            answer = history[i + 1].log
-            history_pairs.append((question, answer))
+    for i in range(0, len(history) - 1, 2):
+        question = history[i].log
+        answer = history[i + 1].log
+        history_pairs.append((question, answer))
 
     vectorstore = get_vector_store()
 
-    # 2. 유사도 검색 결과 로그 출력
+    # 유사도 검색 결과 로그 출력
     print("\n📚 [Retrieved Documents]")
     docs_scores = vectorstore.similarity_search_with_score(request.query, k=5)
     print(f"\n[DEBUG] Retrieved {len(docs_scores)} documents.")
@@ -76,6 +77,7 @@ async def chat_turn(
 
     # 응답 스트리밍 함수
     async def gpt_stream():
+
          answer_buffer = ""  #GPT 답변
          plan_json_buffer = ""   # plan_ids
          is_plan_mode = False  # [END_OF_MESSAGE] 이후 plan_ids 존재 여부
@@ -105,7 +107,7 @@ async def chat_turn(
                 # JSON이 같이 붙어온 경우 저장
                 if len(parts) > 1:
                     plan_json_buffer += parts[1]
-                    answer_buffer += "[END_OF_MESSAGE]" + parts[1]  # 🔥 여기를 추가
+                    answer_buffer += "[END_OF_MESSAGE]" + parts[1] 
                 continue
 
             # 이 시점의 token은 [END_OF_MESSAGE] 없는 일반 텍스트
