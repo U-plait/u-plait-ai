@@ -136,7 +136,7 @@ async def chat_turn(
             else:
                 plan_json_buffer += token
 
-        
+        print(plan_json_buffer)
         
         # plan_ids 파싱
          try:
