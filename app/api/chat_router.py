@@ -136,10 +136,11 @@ async def chat_turn(
             else:
                 plan_json_buffer += token
 
-        print(plan_json_buffer)
+        
         
         # plan_ids 파싱
          try:
+            print(plan_json_buffer)
             cleaned_json = plan_json_buffer.strip().removeprefix("```json").removesuffix("```").strip()
             plan_data = json.loads(cleaned_json)
             
