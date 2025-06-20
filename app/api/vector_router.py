@@ -15,13 +15,18 @@ async def save_plan_vector(
     db: Session = Depends(get_db)
 ):
     try:
+        db.execute(text("""
+            DELETE FROM langchain_pg_embedding
+            WHERE cmetadata->>'plan_id' = :plan_id
+        """), {"plan_id": str(plan_id)})
+
         vector_store = get_vectorstore()
         
         doc = Document(
             page_content=description,
             metadata={"plan_id": plan_id}
         )
-        
+
         vector_store.add_documents([doc])
 
         db.execute(text("""
@@ -32,7 +37,7 @@ async def save_plan_vector(
 
         db.commit()
         return {"status": "success"}
-    
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
