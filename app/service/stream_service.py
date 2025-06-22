@@ -78,8 +78,8 @@ async def gpt_stream(
     db.add(ChatLog(user_id=user_id, log=answer_buffer, is_chatbot=True))
     db.commit()
 
-    save_eval_sample(
-        question=request_query,
-        answer=answer_buffer,
-        contexts=contexts
-    )
+    # save_eval_sample(
+    #     question=request_query,
+    #     answer=answer_buffer,
+    #     contexts=contexts
+    # )

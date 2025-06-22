@@ -1,11 +1,11 @@
 # app/utils/eval_logger.py
 import json
 import os
-from typing import List  # ✅ 추가
+from typing import List
 
 EVAL_DATA_PATH = "app/evaluation/eval_data.json"
 
-def save_eval_sample(question: str, answer: str, contexts: List[str]):  # ✅ 여기 변경
+def save_eval_sample(question: str, answer: str, contexts: List[str]): 
     new_data = {
         "question": question,
         "answer": answer,
