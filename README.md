@@ -85,6 +85,7 @@ LLM 기반 챗봇과의 대화를 통해 사용자는 자신에게 알맞는 요
 </table>
 
 <br><br />
+
 # 4. 기술 스택 (Tech Stack)
 ### 4.3 AI
 
@@ -133,7 +134,11 @@ LLM 기반 챗봇과의 대화를 통해 사용자는 자신에게 알맞는 요
 - 사용자 정보와 사용자 선호태그를 이용하여 사용자 맞춤 요금제를 추천할 수 있습니다.
 - 채팅을 통해서 사용자 선호태그를 갱신합니다.
 
+<br><br />
+
 # 7. 임베딩 모델별 응답 품질 벤치마크
+
+### [👉 전체 벤치마크 결과 보기](https://diagnostic-sandwich-f3d.notion.site/Uplait-217a970704a280528a56cca41a956cab?source=copy_link)
 
 ## 7-1. 비교 모델 목록
 
@@ -141,7 +146,7 @@ LLM 기반 챗봇과의 대화를 통해 사용자는 자신에게 알맞는 요
 - 임베딩 벡터 차원수 : 384 (제일 작음)
 - 특징 : 다국어 지원
 
-### 2. [jhgan/ko-sroberta-multitask · Hugging Face](https://huggingface.co/jhgan/ko-sroberta-multitask)
+### 2. [jhgan/ko-sroberta-multitask · Hugging Face](https://huggingface.co/jhgan/ko-sroberta-multitask) ⭐️
 - 임베딩 벡터 차원수 : 768
 - 특징 : 한국어 특화 다목적 태스크 특화 모델
 
@@ -158,6 +163,3 @@ LLM 기반 챗봇과의 대화를 통해 사용자는 자신에게 알맞는 요
 - 사용자의 질문에 대한 정확성, 맥락 반영, 신뢰도 측면에서 주요 임베딩 모델들을 비교 분석하였습니다.
 - 질문-답변 쌍을 직접 평가하여, 실사용 기반에서의 응답 품질을 수치화하였습니다.
 - 최종적으로 "jhgan/ko-sroberta-multitask" 모델을 선택했습니다.
-
-👉 전체 벤치마크 결과 보기:
-https://diagnostic-sandwich-f3d.notion.site/Uplait-217a970704a280528a56cca41a956cab?source=copy_link
