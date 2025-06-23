@@ -6,12 +6,11 @@ from app.api.vector_router import router as vector_router
 from app.api.health_router import router as health_router
 from app.dependencies.vector import init_vectorstore
 from app.dependencies.llm import init_llm
+from dotenv import load_dotenv
 import logging
+import os
 
 app = FastAPI()
-
-import os
-from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
