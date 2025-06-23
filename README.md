@@ -97,10 +97,35 @@ LLM 기반 챗봇과의 대화를 통해 사용자는 자신에게 알맞는 요
 
 <br><br />
 
-
 # 5. 기능 소개
 
+### 1. 요금제 추천 
+<img width="400" height="550" alt="image" src="https://github.com/user-attachments/assets/a3de4b35-87ce-4a3f-b6bf-29b9509221f4" />
 
+👉 **사용자의 질문에서 맥락을 파악하여 이에 알맞은 요금제를 추천합니다.**
+
+<br><br />
+
+### 2. 선호 태그 기반 요금제 추천
+<img width="400" height="550" alt="image" src="https://github.com/user-attachments/assets/32e01253-90c8-49d1-8cb5-12e69687d0a7" />
+
+👉 **사용자의 정보와 사용자의 선호태그에 기반한 요금제를 추천합니다.**
+
+<br><br />
+
+### 3. 대화 로그 기반 질의(멀티턴)
+<tr>
+    <td align="center">
+      <img width="400" height="550" alt="image" src="https://github.com/user-attachments/assets/64dc572f-ad54-4a5b-86d9-77044e75022b" />
+    </td>
+    <td align="center">
+      <img width="400" height="550" alt="image" src="https://github.com/user-attachments/assets/251e2d24-93af-4bc1-958e-34aa6b36c453" />
+    </td>
+  </tr>
+
+👉 **이전 질문 "시니어 요금제 추천"을 반영한 답변을 합니다.**
+
+<br><br />
 
 # 6. RAG 기반 요금제 추천 챗봇 데이터 흐름도
 <img width="500" alt="image" src="https://github.com/user-attachments/assets/52efac97-57d9-4633-b176-655f6ed95e4a" />
@@ -132,22 +157,7 @@ LLM 기반 챗봇과의 대화를 통해 사용자는 자신에게 알맞는 요
 
 - 사용자의 질문에 대한 정확성, 맥락 반영, 신뢰도 측면에서 주요 임베딩 모델들을 비교 분석하였습니다.
 - 질문-답변 쌍을 직접 평가하여, 실사용 기반에서의 응답 품질을 수치화하였습니다.
+- 최종적으로 "jhgan/ko-sroberta-multitask" 모델을 선택했습니다.
 
 👉 전체 벤치마크 결과 보기:
 https://diagnostic-sandwich-f3d.notion.site/Uplait-217a970704a280528a56cca41a956cab?source=copy_link
-
-<br><br />
-
-# 8. 챗봇 시연결과
-<tr>
-    <td align="center">
-      <img width="400" height="600" alt="image" src="https://github.com/user-attachments/assets/32e01253-90c8-49d1-8cb5-12e69687d0a7" />
-    </td>
-    <td align="center">
-      <img width="400" height="600" alt="image" src="https://github.com/user-attachments/assets/a3de4b35-87ce-4a3f-b6bf-29b9509221f4" />
-    </td>
-  </tr>
-
-
-
-
