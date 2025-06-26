@@ -1,4 +1,3 @@
-# rag_service.py
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate

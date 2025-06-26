@@ -1,4 +1,3 @@
-# app/dependencies/llm.py
 from langchain_openai import ChatOpenAI
 
 llm = None

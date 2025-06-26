@@ -1,4 +1,3 @@
-# app/service/stream_service.py
 import asyncio
 import json
 from sqlalchemy.orm import Session
@@ -77,9 +76,3 @@ async def gpt_stream(
     db.add(ChatLog(user_id=user_id, log=request_query, is_chatbot=False))
     db.add(ChatLog(user_id=user_id, log=answer_buffer, is_chatbot=True))
     db.commit()
-
-    # save_eval_sample(
-    #     question=request_query,
-    #     answer=answer_buffer,
-    #     contexts=contexts
-    # )

@@ -21,7 +21,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # docker build & push
       - name: Docker build & push
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
@@ -37,7 +36,6 @@ jobs:
           script: |
             echo "${{ secrets.ENV_FILE }}" > ~/.env
 
-      # 배포
       - name: EC2 Connect & Deploy
         uses: appleboy/ssh-action@master
         with:
@@ -46,18 +44,13 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           script: |
-            # 모든 컨테이너 중지 및 제거 (컨테이너가 있는 경우)
             sudo docker stop $(docker ps -a -q) || true
             sudo docker rm -fv $(docker ps -aq) || true
 
-            # 이전 이미지 삭
             sudo docker image rm ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest || true
           
-            # 최신 Docker 이미지 pull 받기
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
           
-            # Docker 컨테이너 실행
             sudo docker run -d -p 8000:8000 --env-file /home/ubuntu/.env ${{ secrets.DOCKER_USERNAME }}/uplait-ai:latest
-          
-            # 불필요한 Docker 이미지 정리
+            
             sudo docker image prune -f

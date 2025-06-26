@@ -1,4 +1,3 @@
-# requirements.txt
 click==8.2.1
 fastapi==0.115.12
 h11==0.16.0
@@ -18,11 +17,7 @@ langchain-community==0.3.25
 langchain-openai==0.3.23
 pgvector==0.4.1
 PyJWT==2.10.1
-
-# sentence-transformers 라이브러리
 sentence-transformers==2.6.1
-
-# transformers 및 의존성 (HuggingFace 기반)
 transformers==4.39.3
 scikit-learn==1.4.2
 scipy==1.13.1

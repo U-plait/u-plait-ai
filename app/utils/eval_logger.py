@@ -1,4 +1,3 @@
-# app/utils/eval_logger.py
 import json
 import os
 from typing import List
