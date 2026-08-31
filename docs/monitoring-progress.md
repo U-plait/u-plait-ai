@@ -135,6 +135,8 @@ curl http://localhost:8000/metrics | grep -E "^chatbot_|^uplait_ai_"
           env: local
 ```
 
+Prometheus UI: **http://localhost:9091**/targets  (기존 9090 → 9091 로 이동해 u-hyu 등과 충돌 회피)
+
 ## 6. 다음 세션이 이어서 할 것 (챕터 2 준비)
 
 1. **Grafana 커스텀 대시보드에 FastAPI 섹션 추가** (u-plait-be 레포)
