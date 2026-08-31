@@ -23,3 +23,8 @@ scikit-learn==1.4.2
 scipy==1.13.1
 
 pyahocorasick
+
+# --- observability ---
+prometheus-client==0.20.0
+prometheus-fastapi-instrumentator==7.0.0
+tiktoken==0.7.0
