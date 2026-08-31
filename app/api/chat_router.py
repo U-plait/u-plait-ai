@@ -17,6 +17,8 @@ from app.observability import metrics as m
 
 router = APIRouter()
 
+RETRIEVAL_K = 5
+
 
 @router.post("/chat")
 async def chat_turn(
@@ -25,10 +27,20 @@ async def chat_turn(
     user_id: int = Depends(get_current_user_id),
     banword_filter: BanwordFilter = Depends(get_banword_filter)
 ):
-    # 1) 입력 금칙어 검사 (사용자 질문의 어뷰징 감지)
+    total_start = time.perf_counter()
+
+    # --- STAGE 1: input_processing (banword + user_info + history) ---
+    input_start = time.perf_counter()
     if banword_filter.contains_banword(request.query):
         m.BANWORD_HIT.labels(source="input").inc()
         m.RECOMMENDATION_FALLBACK.labels(source="banword_input").inc()
+        m.RECOMMENDATION_TOTAL.labels(result="fallback", stage="validation", failure_type="none").inc()
+        m.RECOMMENDATION_DURATION.labels(stage="input_processing", result="fallback").observe(
+            time.perf_counter() - input_start
+        )
+        m.RECOMMENDATION_DURATION.labels(stage="total", result="fallback").observe(
+            time.perf_counter() - total_start
+        )
 
         def fake_stream():
             yield "data: 죄송합니다. 알지 못하는 질문입니다.\n\n"
@@ -37,17 +49,36 @@ async def chat_turn(
     user_info = get_user_info(user_id, db)
     history_pairs = get_recent_chat_pairs(user_id, db)
     m.SESSION_TURNS.observe(len(history_pairs))
+    m.RECOMMENDATION_DURATION.labels(stage="input_processing", result="success").observe(
+        time.perf_counter() - input_start
+    )
 
-    # 2) RAG 검색 계측 (지연 / hits / top-1 score / empty)
+    # --- STAGE 2: vector_search (pgvector similarity_search) ---
     vectorstore = get_vectorstore()
     retrieval_start = time.perf_counter()
-    docs_scores = vectorstore.similarity_search_with_score(request.query, k=5)
-    m.RETRIEVAL_LATENCY.observe(time.perf_counter() - retrieval_start)
+    try:
+        docs_scores = vectorstore.similarity_search_with_score(request.query, k=RETRIEVAL_K)
+    except Exception:
+        elapsed = time.perf_counter() - retrieval_start
+        m.RETRIEVAL_LATENCY.observe(elapsed)
+        m.RETRIEVAL_TOTAL.labels(result="error").inc()
+        m.RECOMMENDATION_DURATION.labels(stage="vector_search", result="error").observe(elapsed)
+        m.RECOMMENDATION_TOTAL.labels(result="fail", stage="retrieval", failure_type="upstream").inc()
+        m.RECOMMENDATION_DURATION.labels(stage="total", result="error").observe(
+            time.perf_counter() - total_start
+        )
+        raise
+    retrieval_elapsed = time.perf_counter() - retrieval_start
+    m.RETRIEVAL_LATENCY.observe(retrieval_elapsed)
+    m.RECOMMENDATION_DURATION.labels(stage="vector_search", result="success").observe(retrieval_elapsed)
     m.RETRIEVAL_HITS.observe(len(docs_scores))
+    m.RETRIEVAL_TOTAL.labels(result=m.classify_retrieval(len(docs_scores), RETRIEVAL_K)).inc()
+
     if not docs_scores:
-        m.RETRIEVAL_EMPTY.inc()
+        # 검색 결과 0건 → 추천 무의미. 하지만 LLM은 여전히 폴백 응답을 생성 가능.
+        # 이 지점을 SLI 상 fail 로 잡음 (no_candidate).
+        m.RECOMMENDATION_TOTAL.labels(result="fail", stage="retrieval", failure_type="no_candidate").inc()
     else:
-        # similarity_search_with_score 는 (Document, score) 튜플. pgvector는 distance이므로 낮을수록 유사.
         top1_score = docs_scores[0][1]
         try:
             m.RETRIEVAL_TOP1_SCORE.observe(float(top1_score))
@@ -67,6 +98,8 @@ async def chat_turn(
             db,
             context_list,
             banword_filter=banword_filter,
+            total_start=total_start,
+            had_candidates=bool(docs_scores),
         ),
         media_type="text/event-stream"
     )

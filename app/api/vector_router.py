@@ -11,6 +11,14 @@ from app.observability import metrics as m
 router = APIRouter(prefix="/vector", tags=["Vector"])
 
 
+def _sync_operation(trigger: str) -> str:
+    """트리거 → 동기화 operation 매핑 (delete 헤더로 오면 delete 등)."""
+    t = (trigger or "").lower()
+    if t in ("create", "update", "delete", "rebuild"):
+        return t
+    return "update"  # 기본은 upsert 성격
+
+
 @router.post("")
 async def save_plan_vector(
     plan_id: int,
@@ -19,6 +27,7 @@ async def save_plan_vector(
     x_uplait_trigger: str = Header(default="unknown"),
 ):
     started = time.perf_counter()
+    operation = _sync_operation(x_uplait_trigger)
     m.INDEXING_DESCRIPTION_CHARS.observe(len(description or ""))
     m.INDEXING_TRIGGER.labels(trigger=x_uplait_trigger or "unknown").inc()
 
@@ -39,6 +48,7 @@ async def save_plan_vector(
             vector_store.add_documents([doc])
         except Exception as ex:
             m.INDEXING_FAILURES.labels(reason="embedding_error").inc()
+            m.VECTOR_SYNC_TOTAL.labels(operation=operation, result="error").inc()
             raise ex
 
         try:
@@ -50,9 +60,11 @@ async def save_plan_vector(
             db.commit()
         except Exception as ex:
             m.INDEXING_FAILURES.labels(reason="db_error").inc()
+            m.VECTOR_SYNC_TOTAL.labels(operation=operation, result="error").inc()
             raise ex
 
         m.INDEXING_LATENCY.labels(result="success").observe(time.perf_counter() - started)
+        m.VECTOR_SYNC_TOTAL.labels(operation=operation, result="success").inc()
         return {"status": "success"}
 
     except HTTPException:
@@ -60,7 +72,6 @@ async def save_plan_vector(
     except Exception as e:
         db.rollback()
         m.INDEXING_LATENCY.labels(result="error").observe(time.perf_counter() - started)
-        # embedding_error / db_error 는 위에서 잡혔음. 그 외는 unknown으로 카운트.
         raise HTTPException(
             status_code=500,
             detail=f"임베딩 저장 실패: {str(e)}"

@@ -7,6 +7,7 @@ from app.api.health_router import router as health_router
 from app.dependencies.vector import init_vectorstore
 from app.dependencies.llm import init_llm
 from app import observability  # noqa: F401 — 지표 모듈 로드로 Prometheus 레지스트리 초기화
+from app.observability.vector_integrity import start_scheduler as start_integrity_scheduler
 from dotenv import load_dotenv
 import logging
 import os
@@ -23,6 +24,7 @@ def startup_event():
     print("[STARTUP] Initializing VectorStore & LLM...")
     init_vectorstore()
     init_llm()
+    start_integrity_scheduler()  # Vector 정합성 주기 잡 시작
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,8 +38,6 @@ app.add_middleware(
 )
 
 # --- Observability ---
-# HTTP 기본 지표(http_requests_total, http_request_duration_seconds 등) + custom 지표를
-# 한 엔드포인트에서 노출. /metrics 자체는 스크래핑 대상에서 제외.
 Instrumentator(
     should_group_status_codes=True,
     should_ignore_untemplated=True,

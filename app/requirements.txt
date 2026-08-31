@@ -28,3 +28,4 @@ pyahocorasick
 prometheus-client==0.20.0
 prometheus-fastapi-instrumentator==7.0.0
 tiktoken==0.7.0
+APScheduler==3.10.4

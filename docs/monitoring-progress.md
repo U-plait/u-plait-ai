@@ -33,8 +33,18 @@ Prometheus 및 Grafana 스택 자체는 **u-plait-be 쪽 레포**에 정의되�
 ### 3.1 새 파일
 ```
 app/observability/__init__.py
-app/observability/metrics.py       # 도메인 커스텀 지표 전체 정의 + 토큰 카운팅/비용 유틸
+app/observability/metrics.py           # 도메인 커스텀 지표 전체 정의 + 토큰 카운팅/비용 유틸
+app/observability/vector_integrity.py  # RDB↔벡터 정합성 주기 잡 (APScheduler)
 ```
+
+### 3.1.b Phase 1·2 재정의 반영 (`u-plait-be/docs/monitoring-metrics-improvement.md` 기준)
+- **추천 여정 SLI** `uplait_recommendation_total{result, stage, failure_type}` — HTTP 200이어도 empty/invalid 면 fail
+- **단계별 duration** `uplait_recommendation_duration_seconds{stage=input_processing|vector_search|llm_generation|validation|total, result}`
+- **추천 결과 검증 실패** `uplait_recommendation_invalid_total{reason=missing_plan|duplicate|...}`
+- **retrieval_total{result=hit|insufficient|empty|error}** 로 확장 (기존 empty만 있던 것 대체)
+- **LLM_TOKENS/COST 에 result 라벨 추가** — 실패 호출이 소비한 토큰/비용 분리
+- **Vector DB 정합성**: `uplait_vector_missing_count`, `_orphan_count`, `_sync_lag_seconds` Gauge + `uplait_vector_sync_total{operation, result}` Counter
+- **APScheduler 주기 잡** (env `VECTOR_INTEGRITY_INTERVAL_SEC`, 기본 300초) 이 missing/orphan 주기 스캔
 
 ### 3.2 코드 변경
 | 파일 | 변경 내용 |
